@@ -54,7 +54,7 @@ class SecurityHubIngester(object):
         findings = event.get('findings', [])
 
         # Format the findings as required by Security Hub
-        formatted_findings = self.format_findings(findings)
+        formatted_findings = self._format_findings(findings)
 
         # Send the findings to Security Hub using the batch_import_findings method
         response = self._sechub.batch_import_findings(Findings=formatted_findings)
@@ -124,6 +124,7 @@ class SecurityHubIngester(object):
             formatted_findings.append(formatted_item)
 
         return formatted_findings
+
 
     def _trim_asset(self, asset):
         '''
