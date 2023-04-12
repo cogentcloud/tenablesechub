@@ -84,6 +84,46 @@ class SecurityHubIngester(object):
         # Place the TenableIO object into its new home.
         self._tio = tio
 
+    def _format_findings(self, findings):
+        # Prepare the findings to be fed into Security Hub
+        formatted_findings = []
+        for item in findings:
+            formatted_item = {
+                "SchemaVersion": "2018-10-08",
+                "Id": item.get('id', str(uuid4())),
+                "ProductArn": "arn:aws:securityhub:{0}:{1}:product/{1}/default".format(self._region, self._account_id),
+                "GeneratorId": item.get('plugin_id', 'N/A'),
+                "AwsAccountId": self._account_id,
+                "Types": item.get('asset_type', []),
+                "CreatedAt": datetime.utcnow().isoformat(),
+                "UpdatedAt": datetime.utcnow().isoformat(),
+                "Severity": {
+                    "Product": item.get('severity'),
+                    "Normalized": self._normalize_severity(item.get('severity')),
+                    "Label": self._normalize_severity(item.get('severity')),
+                },
+                "Title": item.get('title'),
+                "Description": item.get('description'),
+                "Resources": [],
+                "RecordState": "ACTIVE",
+                "Workflow": {
+                    "Status": "NEW",
+                },
+            }
+
+            # Add the resource detail to the formatted item.
+            resource_detail = self._prepare_asset_detail(item)
+            if resource_detail:
+                formatted_item['Resources'].append(resource_detail)
+
+            # Add the CVE detail to the formatted item.
+            cve_detail = self._prepare_cve_detail(item)
+            if cve_detail:
+                formatted_item['Vulnerabilities'] = [cve_detail]
+
+            formatted_findings.append(formatted_item)
+
+        return formatted_findings
 
     def _trim_asset(self, asset):
         '''
